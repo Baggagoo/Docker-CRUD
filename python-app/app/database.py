@@ -1,6 +1,7 @@
 import os
 import time
 import psycopg2
+from urllib.parse import urlparse
 
 def get_db_connection():
     """Estabelece conexão com o banco de dados PostgreSQL"""
@@ -9,11 +10,19 @@ def get_db_connection():
 
     while attempts < max_attempts:
         try:
+            # Obtém a URL do banco de dados
+            db_url = os.environ.get('DATABASE_URL')
+            if not db_url:
+                raise Exception("A variável de ambiente DATABASE_URL não está definida.")
+
+            # Analisa a URL do banco de dados
+            result = urlparse(db_url)
             conn = psycopg2.connect(
-                host=os.environ.get('DATABASE_HOST', 'postgres'),
-                database=os.environ.get('DATABASE_NAME', 'app_database'),
-                user=os.environ.get('DATABASE_USER', 'postgres'),
-                password=os.environ.get('DATABASE_PASSWORD', 'postgres')
+                host=result.hostname,
+                database=result.path[1:],  # Remove a barra inicial
+                user=result.username,
+                password=result.password,
+                port=result.port
             )
             return conn
         except psycopg2.OperationalError:

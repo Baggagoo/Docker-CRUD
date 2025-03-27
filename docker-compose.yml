@@ -9,11 +9,12 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-app_database}
+      POSTGRES_DB: ${POSTGRES_DB:-escola}  # Nome do banco atualizado
     ports:
-      - "2000:5432"
+      - "5432:5432"  # Porta padrão do PostgreSQL
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql  # Carregar init.sql
     networks:
       - app_network
     healthcheck:
@@ -32,10 +33,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_HOST: postgres
-      DATABASE_NAME: ${POSTGRES_DB:-app_database}
-      DATABASE_USER: ${POSTGRES_USER:-postgres}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/escola  # Usando DATABASE_URL
     ports:
       - "8000:8000"
     volumes:
