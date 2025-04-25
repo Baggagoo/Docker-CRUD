@@ -1,11 +1,12 @@
 from flask import Flask
-from app.alunos import alunos_bp
-from app.professores import professores_bp
-from app.pagamentos import pagamentos_bp
-from app.presencas import presencas_bp
-from app.atividades import atividades_bp
-from app.atividades_alunos import atividades_alunos_bp
-from app.usuarios import usuarios_bp
+from alunos import alunos_bp
+from professores import professores_bp
+from pagamentos import pagamentos_bp
+from presenca import presencas_bp
+from atividades import atividades_bp
+from atividades_alunos import atividades_alunos_bp
+from usuarios import usuarios_bp
+from database import get_db_connection, close_db_connection  # Importar as funções de conexão com o banco
 
 app = Flask(__name__)
 
@@ -17,6 +18,17 @@ app.register_blueprint(presencas_bp)
 app.register_blueprint(atividades_bp)
 app.register_blueprint(atividades_alunos_bp)
 app.register_blueprint(usuarios_bp)
+
+# Testar a conexão com o banco de dados
+try:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1")
+    print("Teste de conexão com o banco de dados:", cursor.fetchone())
+    cursor.close()
+    close_db_connection(conn)
+except Exception as e:
+    print("Erro ao conectar ao banco de dados:", e)
 
 @app.route('/')
 def home():

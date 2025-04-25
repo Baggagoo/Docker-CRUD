@@ -1,10 +1,10 @@
 -- Script para inicializar o banco de dados "escola"
 
 -- Criar o banco de dados
-CREATE DATABASE escola;
+--CREATE DATABASE escola;
 
 -- Conectar ao banco de dados "escola"
-\c escola;
+--\c escola;
 
 -- Criar a tabela "alunos"
 CREATE TABLE alunos (

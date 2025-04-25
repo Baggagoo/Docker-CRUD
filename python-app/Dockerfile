@@ -13,7 +13,7 @@ COPY ./app /app
 # Define variáveis de ambiente
 ENV PYTHONUNBUFFERED=1
 ENV DATABASE_URL=postgresql://postgres:postgres@postgres:5432/escola
-
+    
 # Adicionar um usuário não-root
 RUN useradd -m appuser
 USER appuser

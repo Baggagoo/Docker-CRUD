@@ -1,5 +1,5 @@
 import pytest
-from app.main import app
+from main import app
 from unittest.mock import patch, MagicMock
 
 
