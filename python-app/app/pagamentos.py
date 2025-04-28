@@ -6,6 +6,34 @@ pagamentos_bp = Blueprint('pagamentos', __name__)
 # Listar todos os pagamentos
 @pagamentos_bp.route('/pagamentos', methods=['GET'])
 def get_pagamentos():
+    """
+    Listar todos os pagamentos
+    ---
+    responses:
+      200:
+        description: Lista de pagamentos
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              pagamento_id:
+                type: integer
+                description: ID do pagamento
+              aluno_id:
+                type: integer
+                description: ID do aluno
+              valor:
+                type: number
+                description: Valor do pagamento
+              data_pagamento:
+                type: string
+                format: date
+                description: Data do pagamento
+              metodo_pagamento:
+                type: string
+                description: Método de pagamento
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT pagamento_id, aluno_id, valor, data_pagamento, metodo_pagamento FROM pagamentos')
@@ -27,6 +55,33 @@ def get_pagamentos():
 # Cadastrar um novo pagamento
 @pagamentos_bp.route('/pagamentos', methods=['POST'])
 def create_pagamento():
+    """
+    Cadastrar um novo pagamento
+    ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            aluno_id:
+              type: integer
+              description: ID do aluno
+            valor:
+              type: number
+              description: Valor do pagamento
+            data_pagamento:
+              type: string
+              format: date
+              description: Data do pagamento
+            metodo_pagamento:
+              type: string
+              description: Método de pagamento
+    responses:
+      201:
+        description: Pagamento cadastrado com sucesso
+    """
     data = request.get_json()
     aluno_id = data.get('aluno_id')
     valor = data.get('valor')
@@ -58,6 +113,35 @@ def create_pagamento():
 # Atualizar um pagamento existente
 @pagamentos_bp.route('/pagamentos/<int:pagamento_id>', methods=['PUT'])
 def update_pagamento(pagamento_id):
+    """
+    Atualizar um pagamento existente
+    ---
+    parameters:
+      - in: path
+        name: pagamento_id
+        required: true
+        type: integer
+        description: ID do pagamento
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            valor:
+              type: number
+              description: Novo valor do pagamento
+            data_pagamento:
+              type: string
+              format: date
+              description: Nova data do pagamento
+            metodo_pagamento:
+              type: string
+              description: Novo método de pagamento
+    responses:
+      200:
+        description: Pagamento atualizado com sucesso
+    """
     data = request.get_json()
     valor = data.get('valor')
     data_pagamento = data.get('data_pagamento')
@@ -87,6 +171,19 @@ def update_pagamento(pagamento_id):
 # Excluir um pagamento
 @pagamentos_bp.route('/pagamentos/<int:pagamento_id>', methods=['DELETE'])
 def delete_pagamento(pagamento_id):
+    """
+    Excluir um pagamento
+    ---
+    parameters:
+      - in: path
+        name: pagamento_id
+        required: true
+        type: integer
+        description: ID do pagamento
+    responses:
+      200:
+        description: Pagamento excluído com sucesso
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM pagamentos WHERE pagamento_id = %s', (pagamento_id,))

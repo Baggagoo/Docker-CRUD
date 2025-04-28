@@ -6,6 +6,33 @@ atividades_alunos_bp = Blueprint('atividades_alunos', __name__)
 # Listar todas as atividades de alunos
 @atividades_alunos_bp.route('/atividades_alunos', methods=['GET'])
 def get_atividades_alunos():
+    """
+    Listar todas as atividades de alunos
+    ---
+    responses:
+      200:
+        description: Lista de atividades de alunos
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              atividade_aluno_id:
+                type: integer
+                description: ID da atividade do aluno
+              atividade_id:
+                type: integer
+                description: ID da atividade
+              aluno_id:
+                type: integer
+                description: ID do aluno
+              status:
+                type: string
+                description: Status da atividade
+              nota:
+                type: number
+                description: Nota da atividade
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT atividade_aluno_id, atividade_id, aluno_id, status, nota FROM atividades_alunos')
@@ -27,6 +54,32 @@ def get_atividades_alunos():
 # Cadastrar uma nova atividade para um aluno
 @atividades_alunos_bp.route('/atividades_alunos', methods=['POST'])
 def create_atividade_aluno():
+    """
+    Cadastrar uma nova atividade para um aluno
+    ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            atividade_id:
+              type: integer
+              description: ID da atividade
+            aluno_id:
+              type: integer
+              description: ID do aluno
+            status:
+              type: string
+              description: Status da atividade
+            nota:
+              type: number
+              description: Nota da atividade
+    responses:
+      201:
+        description: Atividade cadastrada com sucesso
+    """
     data = request.get_json()
     atividade_id = data.get('atividade_id')
     aluno_id = data.get('aluno_id')
@@ -58,6 +111,31 @@ def create_atividade_aluno():
 # Atualizar uma atividade de um aluno
 @atividades_alunos_bp.route('/atividades_alunos/<int:atividade_aluno_id>', methods=['PUT'])
 def update_atividade_aluno(atividade_aluno_id):
+    """
+    Atualizar uma atividade de um aluno
+    ---
+    parameters:
+      - in: path
+        name: atividade_aluno_id
+        required: true
+        type: integer
+        description: ID da atividade do aluno
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              description: Novo status da atividade
+            nota:
+              type: number
+              description: Nova nota da atividade
+    responses:
+      200:
+        description: Atividade atualizada com sucesso
+    """
     data = request.get_json()
     status = data.get('status')
     nota = data.get('nota')
@@ -85,6 +163,19 @@ def update_atividade_aluno(atividade_aluno_id):
 # Excluir uma atividade de um aluno
 @atividades_alunos_bp.route('/atividades_alunos/<int:atividade_aluno_id>', methods=['DELETE'])
 def delete_atividade_aluno(atividade_aluno_id):
+    """
+    Excluir uma atividade de um aluno
+    ---
+    parameters:
+      - in: path
+        name: atividade_aluno_id
+        required: true
+        type: integer
+        description: ID da atividade do aluno
+    responses:
+      200:
+        description: Atividade excluída com sucesso
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM atividades_alunos WHERE atividade_aluno_id = %s', (atividade_aluno_id,))

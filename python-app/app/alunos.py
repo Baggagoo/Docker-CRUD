@@ -6,6 +6,42 @@ alunos_bp = Blueprint('alunos', __name__)
 # Listar todos os alunos
 @alunos_bp.route('/alunos', methods=['GET'])
 def get_alunos():
+    """
+    Listar todos os alunos
+    ---
+    responses:
+      200:
+        description: Lista de alunos
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              aluno_id:
+                type: string
+                description: ID do aluno
+              nome:
+                type: string
+                description: Nome do aluno
+              endereco:
+                type: string
+                description: Endereço do aluno
+              cidade:
+                type: string
+                description: Cidade do aluno
+              estado:
+                type: string
+                description: Estado do aluno
+              cep:
+                type: string
+                description: CEP do aluno
+              pais:
+                type: string
+                description: País do aluno
+              telefone:
+                type: string
+                description: Telefone do aluno
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT aluno_id, nome, endereco, cidade, estado, cep, pais, telefone FROM alunos')
@@ -30,6 +66,36 @@ def get_alunos():
 # Cadastrar um novo aluno
 @alunos_bp.route('/alunos', methods=['POST'])
 def create_aluno():
+    """
+    Cadastrar um novo aluno
+    ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            aluno_id:
+              type: string
+            nome:
+              type: string
+            endereco:
+              type: string
+            cidade:
+              type: string
+            estado:
+              type: string
+            cep:
+              type: string
+            pais:
+              type: string
+            telefone:
+              type: string
+    responses:
+      201:
+        description: Aluno criado com sucesso
+    """
     data = request.get_json()
     aluno_id = data.get('aluno_id')
     nome = data.get('nome')

@@ -1,4 +1,5 @@
 from flask import Flask
+from flasgger import Swagger  # Importar o Flasgger
 from alunos import alunos_bp
 from professores import professores_bp
 from pagamentos import pagamentos_bp
@@ -9,6 +10,9 @@ from usuarios import usuarios_bp
 from database import get_db_connection, close_db_connection  # Importar as funções de conexão com o banco
 
 app = Flask(__name__)
+
+# Configuração do Swagger
+swagger = Swagger(app)
 
 # Registrar os blueprints
 app.register_blueprint(alunos_bp)

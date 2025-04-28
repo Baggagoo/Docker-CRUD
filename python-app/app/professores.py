@@ -6,6 +6,33 @@ professores_bp = Blueprint('professores', __name__)
 # Listar todos os professores
 @professores_bp.route('/professores', methods=['GET'])
 def get_professores():
+    """
+    Listar todos os professores
+    ---
+    responses:
+      200:
+        description: Lista de professores
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              professor_id:
+                type: string
+                description: ID do professor
+              nome:
+                type: string
+                description: Nome do professor
+              departamento:
+                type: string
+                description: Departamento do professor
+              email:
+                type: string
+                description: Email do professor
+              telefone:
+                type: string
+                description: Telefone do professor
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT professor_id, nome, departamento, email, telefone FROM professores')
@@ -27,6 +54,35 @@ def get_professores():
 # Cadastrar um novo professor
 @professores_bp.route('/professores', methods=['POST'])
 def create_professor():
+    """
+    Cadastrar um novo professor
+    ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            professor_id:
+              type: string
+              description: ID do professor
+            nome:
+              type: string
+              description: Nome do professor
+            departamento:
+              type: string
+              description: Departamento do professor
+            email:
+              type: string
+              description: Email do professor
+            telefone:
+              type: string
+              description: Telefone do professor
+    responses:
+      201:
+        description: Professor cadastrado com sucesso
+    """
     data = request.get_json()
     professor_id = data.get('professor_id')
     nome = data.get('nome')
@@ -58,6 +114,37 @@ def create_professor():
 # Atualizar um professor existente
 @professores_bp.route('/professores/<string:professor_id>', methods=['PUT'])
 def update_professor(professor_id):
+    """
+    Atualizar um professor existente
+    ---
+    parameters:
+      - in: path
+        name: professor_id
+        required: true
+        type: string
+        description: ID do professor
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nome:
+              type: string
+              description: Nome do professor
+            departamento:
+              type: string
+              description: Departamento do professor
+            email:
+              type: string
+              description: Email do professor
+            telefone:
+              type: string
+              description: Telefone do professor
+    responses:
+      200:
+        description: Professor atualizado com sucesso
+    """
     data = request.get_json()
     nome = data.get('nome')
     departamento = data.get('departamento')
@@ -89,6 +176,19 @@ def update_professor(professor_id):
 # Excluir um professor
 @professores_bp.route('/professores/<string:professor_id>', methods=['DELETE'])
 def delete_professor(professor_id):
+    """
+    Excluir um professor
+    ---
+    parameters:
+      - in: path
+        name: professor_id
+        required: true
+        type: string
+        description: ID do professor
+    responses:
+      200:
+        description: Professor excluído com sucesso
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM professores WHERE professor_id = %s', (professor_id,))

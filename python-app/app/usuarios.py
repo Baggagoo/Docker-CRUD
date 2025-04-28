@@ -7,6 +7,33 @@ usuarios_bp = Blueprint('usuarios', __name__)
 # Listar todos os usuários
 @usuarios_bp.route('/usuarios', methods=['GET'])
 def get_usuarios():
+    """
+    Listar todos os usuários
+    ---
+    responses:
+      200:
+        description: Lista de usuários
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              usuario_id:
+                type: integer
+                description: ID do usuário
+              nome:
+                type: string
+                description: Nome do usuário
+              email:
+                type: string
+                description: Email do usuário
+              senha:
+                type: string
+                description: Senha do usuário (hash não exposto)
+              tipo_usuario:
+                type: string
+                description: Tipo do usuário (ex: admin, aluno)
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT usuario_id, nome, email, senha, tipo_usuario FROM usuarios')
@@ -28,6 +55,32 @@ def get_usuarios():
 # Cadastrar um novo usuário
 @usuarios_bp.route('/usuarios', methods=['POST'])
 def create_usuario():
+    """
+    Cadastrar um novo usuário
+    ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nome:
+              type: string
+              description: Nome do usuário
+            email:
+              type: string
+              description: Email do usuário
+            senha:
+              type: string
+              description: Senha do usuário
+            tipo_usuario:
+              type: string
+              description: Tipo do usuário (ex: admin, aluno)
+    responses:
+      201:
+        description: Usuário cadastrado com sucesso
+    """
     data = request.get_json()
     nome = data.get('nome')
     email = data.get('email')
@@ -61,6 +114,37 @@ def create_usuario():
 # Atualizar um usuário existente
 @usuarios_bp.route('/usuarios/<int:usuario_id>', methods=['PUT'])
 def update_usuario(usuario_id):
+    """
+    Atualizar um usuário existente
+    ---
+    parameters:
+      - in: path
+        name: usuario_id
+        required: true
+        type: integer
+        description: ID do usuário
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nome:
+              type: string
+              description: Nome do usuário
+            email:
+              type: string
+              description: Email do usuário
+            senha:
+              type: string
+              description: Nova senha do usuário
+            tipo_usuario:
+              type: string
+              description: Tipo do usuário (ex: admin, aluno)
+    responses:
+      200:
+        description: Usuário atualizado com sucesso
+    """
     data = request.get_json()
     nome = data.get('nome')
     email = data.get('email')
@@ -94,6 +178,19 @@ def update_usuario(usuario_id):
 # Excluir um usuário
 @usuarios_bp.route('/usuarios/<int:usuario_id>', methods=['DELETE'])
 def delete_usuario(usuario_id):
+    """
+    Excluir um usuário
+    ---
+    parameters:
+      - in: path
+        name: usuario_id
+        required: true
+        type: integer
+        description: ID do usuário
+    responses:
+      200:
+        description: Usuário excluído com sucesso
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM usuarios WHERE usuario_id = %s', (usuario_id,))
