@@ -1,181 +1,255 @@
-from flask import Blueprint, jsonify, request
+import logging
+import psycopg2
+from flask import Blueprint, request, jsonify
 from database import get_db_connection, close_db_connection
 
+# Configuração do logging com rotação de logs
+from logging.handlers import RotatingFileHandler
+
+log_handler = RotatingFileHandler(
+    'escola_infantil.log', maxBytes=5 * 1024 * 1024, backupCount=3  # 5 MB por arquivo, até 3 backups
+)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[log_handler, logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
+
+# Blueprint para o módulo alunos
 alunos_bp = Blueprint('alunos', __name__)
 
-# Listar todos os alunos
+# Função para registrar logs de operações CRUD
+def log_operacao(tipo_operacao, sucesso, detalhes=None, erro=None):
+    if sucesso:
+        logger.info(f"Operação {tipo_operacao} realizada com sucesso. Detalhes: {detalhes}")
+    else:
+        logger.error(f"Erro na operação {tipo_operacao}. Detalhes: {detalhes}. Erro: {erro}")
+
+# CREATE: Adicionar um novo aluno
+@alunos_bp.route('/alunos', methods=['POST'])
+def adicionar_aluno():
+    """
+    Adicionar um novo aluno
+    ---
+    tags:
+      - Alunos
+    summary: Adiciona um novo aluno ao banco de dados
+    description: Adiciona um novo aluno com os campos nome, idade e turma.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        description: Dados do aluno a ser adicionado
+        schema:
+          type: object
+          properties:
+            nome:
+              type: string
+            idade:
+              type: integer
+            turma:
+              type: string
+          required:
+            - nome
+            - idade
+            - turma
+    responses:
+      201:
+        description: Aluno adicionado com sucesso
+      400:
+        description: Dados de entrada inválidos
+      500:
+        description: Erro ao adicionar aluno no banco de dados
+    """
+    try:
+        dados = request.json
+        if not dados or 'nome' not in dados or 'idade' not in dados or 'turma' not in dados:
+            raise ValueError("Dados de entrada inválidos. Campos obrigatórios: nome, idade, turma.")
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "INSERT INTO alunos (nome, idade, turma) VALUES (%s, %s, %s) RETURNING id"
+        cursor.execute(query, (dados['nome'], dados['idade'], dados['turma']))
+        aluno_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
+
+        detalhes = {"id": aluno_id, "nome": dados['nome'], "idade": dados['idade'], "turma": dados['turma']}
+        log_operacao("CREATE", True, detalhes)
+        return jsonify({"id": aluno_id, "message": "Aluno adicionado com sucesso"}), 201
+    except ValueError as ve:
+        logger.warning(f"Erro de validação: {ve}")
+        return jsonify({"error": str(ve)}), 400
+    except psycopg2.Error as e:
+        log_operacao("CREATE", False, detalhes=dados, erro=f"{e.pgcode} - {e.pgerror}")
+        return jsonify({"error": "Erro ao adicionar aluno no banco de dados"}), 500
+    except Exception as e:
+        log_operacao("CREATE", False, detalhes=dados, erro=str(e))
+        return jsonify({"error": "Erro inesperado ao adicionar aluno"}), 500
+
+# READ: Listar todos os alunos
 @alunos_bp.route('/alunos', methods=['GET'])
-def get_alunos():
+def listar_alunos():
     """
     Listar todos os alunos
     ---
+    tags:
+      - Alunos
+    summary: Retorna uma lista de todos os alunos cadastrados
+    description: Retorna uma lista com os campos id, nome, idade e turma de todos os alunos cadastrados no banco de dados.
     responses:
       200:
-        description: Lista de alunos
+        description: Lista de alunos retornada com sucesso
         schema:
           type: array
           items:
             type: object
             properties:
-              aluno_id:
-                type: string
-                description: ID do aluno
+              id:
+                type: integer
               nome:
                 type: string
-                description: Nome do aluno
-              endereco:
+              idade:
+                type: integer
+              turma:
                 type: string
-                description: Endereço do aluno
-              cidade:
-                type: string
-                description: Cidade do aluno
-              estado:
-                type: string
-                description: Estado do aluno
-              cep:
-                type: string
-                description: CEP do aluno
-              pais:
-                type: string
-                description: País do aluno
-              telefone:
-                type: string
-                description: Telefone do aluno
+      500:
+        description: Erro ao listar alunos no banco de dados
     """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT aluno_id, nome, endereco, cidade, estado, cep, pais, telefone FROM alunos')
-    alunos = cursor.fetchall()
-    cursor.close()
-    close_db_connection(conn)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "SELECT id, nome, idade, turma FROM alunos"
+        cursor.execute(query)
+        alunos = cursor.fetchall()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify([
-        {
-            "aluno_id": aluno[0],
-            "nome": aluno[1],
-            "endereco": aluno[2],
-            "cidade": aluno[3],
-            "estado": aluno[4],
-            "cep": aluno[5],
-            "pais": aluno[6],
-            "telefone": aluno[7]
-        }
-        for aluno in alunos
-    ])
+        detalhes = {"total_alunos": len(alunos)}
+        log_operacao("READ", True, detalhes)
+        return jsonify([{"id": aluno[0], "nome": aluno[1], "idade": aluno[2], "turma": aluno[3]} for aluno in alunos]), 200
+    except psycopg2.Error as e:
+        log_operacao("READ", False, erro=f"{e.pgcode} - {e.pgerror}")
+        return jsonify({"error": "Erro ao listar alunos no banco de dados"}), 500
+    except Exception as e:
+        log_operacao("READ", False, erro=str(e))
+        return jsonify({"error": "Erro inesperado ao listar alunos"}), 500
 
-# Cadastrar um novo aluno
-@alunos_bp.route('/alunos', methods=['POST'])
-def create_aluno():
+# UPDATE: Atualizar informações de um aluno
+@alunos_bp.route('/alunos/<int:aluno_id>', methods=['PUT'])
+def atualizar_aluno(aluno_id):
     """
-    Cadastrar um novo aluno
+    Atualizar informações de um aluno
     ---
+    tags:
+      - Alunos
+    summary: Atualiza as informações de um aluno existente
+    description: Atualiza os campos nome, idade e turma de um aluno com base no ID fornecido.
     parameters:
+      - in: path
+        name: aluno_id
+        required: true
+        type: integer
+        description: ID do aluno a ser atualizado
       - in: body
         name: body
         required: true
+        description: Novos dados do aluno
         schema:
           type: object
           properties:
-            aluno_id:
-              type: string
             nome:
               type: string
-            endereco:
+            idade:
+              type: integer
+            turma:
               type: string
-            cidade:
-              type: string
-            estado:
-              type: string
-            cep:
-              type: string
-            pais:
-              type: string
-            telefone:
-              type: string
+          required:
+            - nome
+            - idade
+            - turma
     responses:
-      201:
-        description: Aluno criado com sucesso
+      200:
+        description: Aluno atualizado com sucesso
+      400:
+        description: Dados de entrada inválidos ou aluno não encontrado
+      500:
+        description: Erro ao atualizar aluno no banco de dados
     """
-    data = request.get_json()
-    aluno_id = data.get('aluno_id')
-    nome = data.get('nome')
-    endereco = data.get('endereco')
-    cidade = data.get('cidade')
-    estado = data.get('estado')
-    cep = data.get('cep')
-    pais = data.get('pais')
-    telefone = data.get('telefone')
+    try:
+        dados = request.json
+        if not dados or 'nome' not in dados or 'idade' not in dados or 'turma' not in dados:
+            raise ValueError("Dados de entrada inválidos. Campos obrigatórios: nome, idade, turma.")
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        '''
-        INSERT INTO alunos (aluno_id, nome, endereco, cidade, estado, cep, pais, telefone)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING aluno_id
-        ''',
-        (aluno_id, nome, endereco, cidade, estado, cep, pais, telefone)
-    )
-    aluno_id = cursor.fetchone()[0]
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "UPDATE alunos SET nome = %s, idade = %s, turma = %s WHERE id = %s"
+        cursor.execute(query, (dados['nome'], dados['idade'], dados['turma'], aluno_id))
+        if cursor.rowcount == 0:
+            raise ValueError(f"Aluno com ID {aluno_id} não encontrado.")
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify({
-        "aluno_id": aluno_id,
-        "nome": nome,
-        "endereco": endereco,
-        "cidade": cidade,
-        "estado": estado,
-        "cep": cep,
-        "pais": pais,
-        "telefone": telefone
-    }), 201
+        detalhes = {"id": aluno_id, "nome": dados['nome'], "idade": dados['idade'], "turma": dados['turma']}
+        log_operacao("UPDATE", True, detalhes)
+        return jsonify({"message": "Aluno atualizado com sucesso"}), 200
+    except ValueError as ve:
+        logger.warning(f"Erro de validação: {ve}")
+        return jsonify({"error": str(ve)}), 400
+    except psycopg2.Error as e:
+        log_operacao("UPDATE", False, detalhes={"id": aluno_id}, erro=f"{e.pgcode} - {e.pgerror}")
+        return jsonify({"error": "Erro ao atualizar aluno no banco de dados"}), 500
+    except Exception as e:
+        log_operacao("UPDATE", False, detalhes={"id": aluno_id}, erro=str(e))
+        return jsonify({"error": "Erro inesperado ao atualizar aluno"}), 500
 
-# Atualizar um aluno existente
-@alunos_bp.route('/alunos/<string:aluno_id>', methods=['PUT'])
-def update_aluno(aluno_id):
-    data = request.get_json()
-    nome = data.get('nome')
-    endereco = data.get('endereco')
-    cidade = data.get('cidade')
-    estado = data.get('estado')
-    cep = data.get('cep')
-    pais = data.get('pais')
-    telefone = data.get('telefone')
+# DELETE: Remover um aluno
+@alunos_bp.route('/alunos/<int:aluno_id>', methods=['DELETE'])
+def remover_aluno(aluno_id):
+    """
+    Remover um aluno
+    ---
+    tags:
+      - Alunos
+    summary: Remove um aluno do banco de dados
+    description: Remove um aluno com base no ID fornecido.
+    parameters:
+      - in: path
+        name: aluno_id
+        required: true
+        type: integer
+        description: ID do aluno a ser removido
+    responses:
+      200:
+        description: Aluno removido com sucesso
+      400:
+        description: Aluno não encontrado
+      500:
+        description: Erro ao remover aluno no banco de dados
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "DELETE FROM alunos WHERE id = %s"
+        cursor.execute(query, (aluno_id,))
+        if cursor.rowcount == 0:
+            raise ValueError(f"Aluno com ID {aluno_id} não encontrado.")
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        '''
-        UPDATE alunos
-        SET nome = %s, endereco = %s, cidade = %s, estado = %s, cep = %s, pais = %s, telefone = %s
-        WHERE aluno_id = %s
-        ''',
-        (nome, endereco, cidade, estado, cep, pais, telefone, aluno_id)
-    )
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
-
-    return jsonify({
-        "aluno_id": aluno_id,
-        "nome": nome,
-        "endereco": endereco,
-        "cidade": cidade,
-        "estado": estado,
-        "cep": cep,
-        "pais": pais,
-        "telefone": telefone
-    })
-
-# Excluir um aluno
-@alunos_bp.route('/alunos/<string:aluno_id>', methods=['DELETE'])
-def delete_aluno(aluno_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM alunos WHERE aluno_id = %s', (aluno_id,))
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
-
-    return jsonify({"message": f"Aluno com id {aluno_id} foi excluído com sucesso"})
+        detalhes = {"id": aluno_id}
+        log_operacao("DELETE", True, detalhes)
+        return jsonify({"message": "Aluno removido com sucesso"}), 200
+    except ValueError as ve:
+        logger.warning(f"Erro de validação: {ve}")
+        return jsonify({"error": str(ve)}), 400
+    except psycopg2.Error as e:
+        log_operacao("DELETE", False, detalhes={"id": aluno_id}, erro=f"{e.pgcode} - {e.pgerror}")
+        return jsonify({"error": "Erro ao remover aluno no banco de dados"}), 500
+    except Exception as e:
+        log_operacao("DELETE", False, detalhes={"id": aluno_id}, erro=str(e))
+        return jsonify({"error": "Erro inesperado ao remover aluno"}), 500
