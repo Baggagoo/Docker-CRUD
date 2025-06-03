@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from database import get_db_connection, close_db_connection
 import bcrypt  # Importa a biblioteca bcrypt
+from logger_config import log_operacao  # Importa a função centralizada de log
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
@@ -34,23 +35,28 @@ def get_usuarios():
                 type: string
                 description: Tipo do usuário (ex: admin, aluno)
     """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT usuario_id, nome, email, senha, tipo_usuario FROM usuarios')
-    usuarios = cursor.fetchall()
-    cursor.close()
-    close_db_connection(conn)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT usuario_id, nome, email, senha, tipo_usuario FROM usuarios')
+        usuarios = cursor.fetchall()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify([
-        {
-            "usuario_id": usuario[0],
-            "nome": usuario[1],
-            "email": usuario[2],
-            "senha": "HASHED",  # Nunca exponha a senha real ou o hash
-            "tipo_usuario": usuario[4]
-        }
-        for usuario in usuarios
-    ])
+        log_operacao("READ_USUARIOS", True, detalhes={"total": len(usuarios)})
+        return jsonify([
+            {
+                "usuario_id": usuario[0],
+                "nome": usuario[1],
+                "email": usuario[2],
+                "senha": "HASHED",  # Nunca exponha a senha real ou o hash
+                "tipo_usuario": usuario[4]
+            }
+            for usuario in usuarios
+        ])
+    except Exception as e:
+        log_operacao("READ_USUARIOS", False, erro=str(e))
+        return jsonify({"error": "Erro ao listar usuários"}), 500
 
 # Cadastrar um novo usuário
 @usuarios_bp.route('/usuarios', methods=['POST'])
@@ -87,29 +93,35 @@ def create_usuario():
     senha = data.get('senha')  # Recebe a senha em texto puro
     tipo_usuario = data.get('tipo_usuario')
 
-    # Criptografar a senha
-    hashed_senha = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
+    try:
+        # Criptografar a senha
+        hashed_senha = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        '''
-        INSERT INTO usuarios (nome, email, senha, tipo_usuario)
-        VALUES (%s, %s, %s, %s) RETURNING usuario_id
-        ''',
-        (nome, email, hashed_senha.decode('utf-8'), tipo_usuario)
-    )
-    usuario_id = cursor.fetchone()[0]
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO usuarios (nome, email, senha, tipo_usuario)
+            VALUES (%s, %s, %s, %s) RETURNING usuario_id
+            ''',
+            (nome, email, hashed_senha.decode('utf-8'), tipo_usuario)
+        )
+        usuario_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify({
-        "usuario_id": usuario_id,
-        "nome": nome,
-        "email": email,
-        "tipo_usuario": tipo_usuario
-    }), 201
+        detalhes = {
+            "usuario_id": usuario_id,
+            "nome": nome,
+            "email": email,
+            "tipo_usuario": tipo_usuario
+        }
+        log_operacao("CREATE_USUARIO", True, detalhes)
+        return jsonify(detalhes), 201
+    except Exception as e:
+        log_operacao("CREATE_USUARIO", False, detalhes=data, erro=str(e))
+        return jsonify({"error": "Erro ao cadastrar usuário"}), 500
 
 # Atualizar um usuário existente
 @usuarios_bp.route('/usuarios/<int:usuario_id>', methods=['PUT'])
@@ -151,29 +163,35 @@ def update_usuario(usuario_id):
     senha = data.get('senha')  # Recebe a nova senha em texto puro
     tipo_usuario = data.get('tipo_usuario')
 
-    # Criptografar a nova senha
-    hashed_senha = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
+    try:
+        # Criptografar a nova senha
+        hashed_senha = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        '''
-        UPDATE usuarios
-        SET nome = %s, email = %s, senha = %s, tipo_usuario = %s
-        WHERE usuario_id = %s
-        ''',
-        (nome, email, hashed_senha.decode('utf-8'), tipo_usuario, usuario_id)
-    )
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE usuarios
+            SET nome = %s, email = %s, senha = %s, tipo_usuario = %s
+            WHERE usuario_id = %s
+            ''',
+            (nome, email, hashed_senha.decode('utf-8'), tipo_usuario, usuario_id)
+        )
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify({
-        "usuario_id": usuario_id,
-        "nome": nome,
-        "email": email,
-        "tipo_usuario": tipo_usuario
-    })
+        detalhes = {
+            "usuario_id": usuario_id,
+            "nome": nome,
+            "email": email,
+            "tipo_usuario": tipo_usuario
+        }
+        log_operacao("UPDATE_USUARIO", True, detalhes)
+        return jsonify(detalhes)
+    except Exception as e:
+        log_operacao("UPDATE_USUARIO", False, detalhes={"usuario_id": usuario_id}, erro=str(e))
+        return jsonify({"error": "Erro ao atualizar usuário"}), 500
 
 # Excluir um usuário
 @usuarios_bp.route('/usuarios/<int:usuario_id>', methods=['DELETE'])
@@ -191,11 +209,16 @@ def delete_usuario(usuario_id):
       200:
         description: Usuário excluído com sucesso
     """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM usuarios WHERE usuario_id = %s', (usuario_id,))
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM usuarios WHERE usuario_id = %s', (usuario_id,))
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify({"message": f"Usuário com id {usuario_id} foi excluído com sucesso"})
+        log_operacao("DELETE_USUARIO", True, detalhes={"usuario_id": usuario_id})
+        return jsonify({"message": f"Usuário com id {usuario_id} foi excluído com sucesso"})
+    except Exception as e:
+        log_operacao("DELETE_USUARIO", False, detalhes={"usuario_id": usuario_id}, erro=str(e))
+        return jsonify({"error": "Erro ao excluir usuário"}), 500

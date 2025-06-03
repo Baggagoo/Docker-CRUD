@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from database import get_db_connection, close_db_connection
+from logger_config import log_operacao  # Importa a função centralizada de log
 
 atividades_alunos_bp = Blueprint('atividades_alunos', __name__)
 
@@ -33,23 +34,28 @@ def get_atividades_alunos():
                 type: number
                 description: Nota da atividade
     """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT atividade_aluno_id, atividade_id, aluno_id, status, nota FROM atividades_alunos')
-    atividades_alunos = cursor.fetchall()
-    cursor.close()
-    close_db_connection(conn)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT atividade_aluno_id, atividade_id, aluno_id, status, nota FROM atividades_alunos')
+        atividades_alunos = cursor.fetchall()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify([
-        {
-            "atividade_aluno_id": atividade_aluno[0],
-            "atividade_id": atividade_aluno[1],
-            "aluno_id": atividade_aluno[2],
-            "status": atividade_aluno[3],
-            "nota": float(atividade_aluno[4]) if atividade_aluno[4] is not None else None
-        }
-        for atividade_aluno in atividades_alunos
-    ])
+        log_operacao("READ_ATIVIDADES_ALUNOS", True, detalhes={"total": len(atividades_alunos)})
+        return jsonify([
+            {
+                "atividade_aluno_id": atividade_aluno[0],
+                "atividade_id": atividade_aluno[1],
+                "aluno_id": atividade_aluno[2],
+                "status": atividade_aluno[3],
+                "nota": float(atividade_aluno[4]) if atividade_aluno[4] is not None else None
+            }
+            for atividade_aluno in atividades_alunos
+        ])
+    except Exception as e:
+        log_operacao("READ_ATIVIDADES_ALUNOS", False, erro=str(e))
+        return jsonify({"error": "Erro ao listar atividades de alunos"}), 500
 
 # Cadastrar uma nova atividade para um aluno
 @atividades_alunos_bp.route('/atividades_alunos', methods=['POST'])
@@ -86,27 +92,33 @@ def create_atividade_aluno():
     status = data.get('status')
     nota = data.get('nota')
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        '''
-        INSERT INTO atividades_alunos (atividade_id, aluno_id, status, nota)
-        VALUES (%s, %s, %s, %s) RETURNING atividade_aluno_id
-        ''',
-        (atividade_id, aluno_id, status, nota)
-    )
-    atividade_aluno_id = cursor.fetchone()[0]
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO atividades_alunos (atividade_id, aluno_id, status, nota)
+            VALUES (%s, %s, %s, %s) RETURNING atividade_aluno_id
+            ''',
+            (atividade_id, aluno_id, status, nota)
+        )
+        atividade_aluno_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify({
-        "atividade_aluno_id": atividade_aluno_id,
-        "atividade_id": atividade_id,
-        "aluno_id": aluno_id,
-        "status": status,
-        "nota": nota
-    }), 201
+        detalhes = {
+            "atividade_aluno_id": atividade_aluno_id,
+            "atividade_id": atividade_id,
+            "aluno_id": aluno_id,
+            "status": status,
+            "nota": nota
+        }
+        log_operacao("CREATE_ATIVIDADE_ALUNO", True, detalhes)
+        return jsonify(detalhes), 201
+    except Exception as e:
+        log_operacao("CREATE_ATIVIDADE_ALUNO", False, detalhes=data, erro=str(e))
+        return jsonify({"error": "Erro ao cadastrar atividade para aluno"}), 500
 
 # Atualizar uma atividade de um aluno
 @atividades_alunos_bp.route('/atividades_alunos/<int:atividade_aluno_id>', methods=['PUT'])
@@ -140,25 +152,31 @@ def update_atividade_aluno(atividade_aluno_id):
     status = data.get('status')
     nota = data.get('nota')
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        '''
-        UPDATE atividades_alunos
-        SET status = %s, nota = %s
-        WHERE atividade_aluno_id = %s
-        ''',
-        (status, nota, atividade_aluno_id)
-    )
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            UPDATE atividades_alunos
+            SET status = %s, nota = %s
+            WHERE atividade_aluno_id = %s
+            ''',
+            (status, nota, atividade_aluno_id)
+        )
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify({
-        "atividade_aluno_id": atividade_aluno_id,
-        "status": status,
-        "nota": nota
-    })
+        detalhes = {
+            "atividade_aluno_id": atividade_aluno_id,
+            "status": status,
+            "nota": nota
+        }
+        log_operacao("UPDATE_ATIVIDADE_ALUNO", True, detalhes)
+        return jsonify(detalhes)
+    except Exception as e:
+        log_operacao("UPDATE_ATIVIDADE_ALUNO", False, detalhes={"atividade_aluno_id": atividade_aluno_id}, erro=str(e))
+        return jsonify({"error": "Erro ao atualizar atividade do aluno"}), 500
 
 # Excluir uma atividade de um aluno
 @atividades_alunos_bp.route('/atividades_alunos/<int:atividade_aluno_id>', methods=['DELETE'])
@@ -176,11 +194,16 @@ def delete_atividade_aluno(atividade_aluno_id):
       200:
         description: Atividade excluída com sucesso
     """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM atividades_alunos WHERE atividade_aluno_id = %s', (atividade_aluno_id,))
-    conn.commit()
-    cursor.close()
-    close_db_connection(conn)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM atividades_alunos WHERE atividade_aluno_id = %s', (atividade_aluno_id,))
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
 
-    return jsonify({"message": f"Atividade do aluno com id {atividade_aluno_id} foi excluída com sucesso"})
+        log_operacao("DELETE_ATIVIDADE_ALUNO", True, detalhes={"atividade_aluno_id": atividade_aluno_id})
+        return jsonify({"message": f"Atividade do aluno com id {atividade_aluno_id} foi excluída com sucesso"})
+    except Exception as e:
+        log_operacao("DELETE_ATIVIDADE_ALUNO", False, detalhes={"atividade_aluno_id": atividade_aluno_id}, erro=str(e))
+        return jsonify({"error": "Erro ao excluir atividade do aluno"}), 500

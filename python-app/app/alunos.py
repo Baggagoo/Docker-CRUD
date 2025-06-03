@@ -1,30 +1,9 @@
-import logging
 import psycopg2
 from flask import Blueprint, request, jsonify
 from database import get_db_connection, close_db_connection
+from logger_config import log_operacao  # Importa a função centralizada de log
 
-# Configuração do logging com rotação de logs
-from logging.handlers import RotatingFileHandler
-
-log_handler = RotatingFileHandler(
-    'escola_infantil.log', maxBytes=5 * 1024 * 1024, backupCount=3  # 5 MB por arquivo, até 3 backups
-)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[log_handler, logging.StreamHandler()]
-)
-logger = logging.getLogger(__name__)
-
-# Blueprint para o módulo alunos
 alunos_bp = Blueprint('alunos', __name__)
-
-# Função para registrar logs de operações CRUD
-def log_operacao(tipo_operacao, sucesso, detalhes=None, erro=None):
-    if sucesso:
-        logger.info(f"Operação {tipo_operacao} realizada com sucesso. Detalhes: {detalhes}")
-    else:
-        logger.error(f"Erro na operação {tipo_operacao}. Detalhes: {detalhes}. Erro: {erro}")
 
 # CREATE: Adicionar um novo aluno
 @alunos_bp.route('/alunos', methods=['POST'])
@@ -80,7 +59,7 @@ def adicionar_aluno():
         log_operacao("CREATE", True, detalhes)
         return jsonify({"id": aluno_id, "message": "Aluno adicionado com sucesso"}), 201
     except ValueError as ve:
-        logger.warning(f"Erro de validação: {ve}")
+        log_operacao("CREATE", False, detalhes=None, erro=str(ve))
         return jsonify({"error": str(ve)}), 400
     except psycopg2.Error as e:
         log_operacao("CREATE", False, detalhes=dados, erro=f"{e.pgcode} - {e.pgerror}")
@@ -197,7 +176,7 @@ def atualizar_aluno(aluno_id):
         log_operacao("UPDATE", True, detalhes)
         return jsonify({"message": "Aluno atualizado com sucesso"}), 200
     except ValueError as ve:
-        logger.warning(f"Erro de validação: {ve}")
+        log_operacao("UPDATE", False, detalhes={"id": aluno_id}, erro=str(ve))
         return jsonify({"error": str(ve)}), 400
     except psycopg2.Error as e:
         log_operacao("UPDATE", False, detalhes={"id": aluno_id}, erro=f"{e.pgcode} - {e.pgerror}")
@@ -245,7 +224,7 @@ def remover_aluno(aluno_id):
         log_operacao("DELETE", True, detalhes)
         return jsonify({"message": "Aluno removido com sucesso"}), 200
     except ValueError as ve:
-        logger.warning(f"Erro de validação: {ve}")
+        log_operacao("DELETE", False, detalhes={"id": aluno_id}, erro=str(ve))
         return jsonify({"error": str(ve)}), 400
     except psycopg2.Error as e:
         log_operacao("DELETE", False, detalhes={"id": aluno_id}, erro=f"{e.pgcode} - {e.pgerror}")
