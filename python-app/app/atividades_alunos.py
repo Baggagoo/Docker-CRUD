@@ -74,7 +74,7 @@ def create_atividade_aluno():
               type: integer
               description: ID da atividade
             aluno_id:
-              type: integer
+              type: string
               description: ID do aluno
             status:
               type: string
@@ -95,6 +95,18 @@ def create_atividade_aluno():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # Validar se atividade_id existe
+        cursor.execute('SELECT COUNT(*) FROM atividades WHERE atividade_id = %s', (atividade_id,))
+        if cursor.fetchone()[0] == 0:
+            raise ValueError(f"Atividade com ID {atividade_id} não encontrada.")
+
+        # Validar se aluno_id existe
+        cursor.execute('SELECT COUNT(*) FROM alunos WHERE aluno_id = %s', (aluno_id,))
+        if cursor.fetchone()[0] == 0:
+            raise ValueError(f"Aluno com ID {aluno_id} não encontrado.")
+
+        # Inserir nova atividade para o aluno
         cursor.execute(
             '''
             INSERT INTO atividades_alunos (atividade_id, aluno_id, status, nota)
@@ -116,6 +128,9 @@ def create_atividade_aluno():
         }
         log_operacao("CREATE_ATIVIDADE_ALUNO", True, detalhes)
         return jsonify(detalhes), 201
+    except ValueError as ve:
+        log_operacao("CREATE_ATIVIDADE_ALUNO", False, detalhes=data, erro=str(ve))
+        return jsonify({"error": str(ve)}), 400
     except Exception as e:
         log_operacao("CREATE_ATIVIDADE_ALUNO", False, detalhes=data, erro=str(e))
         return jsonify({"error": "Erro ao cadastrar atividade para aluno"}), 500

@@ -72,7 +72,7 @@ def create_pagamento():
           type: object
           properties:
             aluno_id:
-              type: integer
+              type: string
               description: ID do aluno
             valor:
               type: number
@@ -97,6 +97,12 @@ def create_pagamento():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # Validar se aluno_id existe
+        cursor.execute('SELECT COUNT(*) FROM alunos WHERE aluno_id = %s', (aluno_id,))
+        if cursor.fetchone()[0] == 0:
+            raise ValueError(f"Aluno com ID {aluno_id} não encontrado.")
+
         cursor.execute(
             '''
             INSERT INTO pagamentos (aluno_id, valor, data_pagamento, metodo_pagamento)
@@ -118,6 +124,9 @@ def create_pagamento():
         }
         log_operacao("CREATE_PAGAMENTO", True, detalhes)
         return jsonify(detalhes), 201
+    except ValueError as ve:
+        log_operacao("CREATE_PAGAMENTO", False, detalhes=data, erro=str(ve))
+        return jsonify({"error": str(ve)}), 400
     except Exception as e:
         log_operacao("CREATE_PAGAMENTO", False, detalhes=data, erro=str(e))
         return jsonify({"error": "Erro ao cadastrar pagamento"}), 500

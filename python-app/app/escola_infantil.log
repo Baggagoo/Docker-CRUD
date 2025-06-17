@@ -4,3 +4,66 @@
 2025-05-05 23:47:50,703 - WARNING -  * Running on all addresses.
    WARNING: This is a development server. Do not use it in a production deployment.
 2025-05-05 23:47:50,706 - INFO -  * Running on http://172.18.0.3:8000/ (Press CTRL+C to quit)
+2025-06-16 22:27:14,920 - WARNING -  * Running on all addresses.
+   WARNING: This is a development server. Do not use it in a production deployment.
+2025-06-16 22:27:14,922 - INFO -  * Running on http://172.18.0.2:8000/ (Press CTRL+C to quit)
+2025-06-16 22:41:04,071 - ERROR - Erro na operação CREATE_PRESENCA. Detalhes: {'aluno_id': 1, 'data': '2025-06-16', 'status': 'presente'}. Erro: insert or update on table "presencas" violates foreign key constraint "presencas_aluno_id_fkey"
+DETAIL:  Key (aluno_id)=(1) is not present in table "alunos".
+
+2025-06-16 22:41:04,100 - INFO - 172.18.0.1 - - [16/Jun/2025 22:41:04] "[35m[1mPOST /presencas HTTP/1.1[0m" 500 -
+2025-06-16 22:44:04,086 - INFO - Operação READ_PROFESSORES realizada com sucesso. Detalhes: {'total': 3}
+2025-06-16 22:44:04,090 - INFO - 172.18.0.1 - - [16/Jun/2025 22:44:04] "GET /professores HTTP/1.1" 200 -
+2025-06-16 22:44:27,504 - INFO - 172.18.0.1 - - [16/Jun/2025 22:44:27] "[31m[1mPOST /professores HTTP/1.1[0m" 400 -
+2025-06-16 22:47:02,834 - INFO - 172.18.0.1 - - [16/Jun/2025 22:47:02] "[31m[1mPOST /professores HTTP/1.1[0m" 400 -
+2025-06-16 22:47:58,518 - INFO - Operação READ_PROFESSORES realizada com sucesso. Detalhes: {'total': 3}
+2025-06-16 22:47:58,520 - INFO - 172.18.0.1 - - [16/Jun/2025 22:47:58] "GET /professores HTTP/1.1" 200 -
+2025-06-16 22:50:34,078 - INFO - 172.18.0.1 - - [16/Jun/2025 22:50:34] "[31m[1mPOST /professores HTTP/1.1[0m" 400 -
+2025-06-16 22:52:31,170 - INFO - 172.18.0.1 - - [16/Jun/2025 22:52:31] "[31m[1mPOST /professores HTTP/1.1[0m" 400 -
+2025-06-16 22:54:40,092 - INFO - Operação DELETE_PROFESSOR realizada com sucesso. Detalhes: {'professor_id': 'P002'}
+2025-06-16 22:54:40,097 - INFO - 172.18.0.1 - - [16/Jun/2025 22:54:40] "DELETE /professores/P002 HTTP/1.1" 200 -
+2025-06-16 22:55:08,516 - INFO - Operação READ_PROFESSORES realizada com sucesso. Detalhes: {'total': 2}
+2025-06-16 22:55:08,518 - INFO - 172.18.0.1 - - [16/Jun/2025 22:55:08] "GET /professores HTTP/1.1" 200 -
+2025-06-16 22:56:49,458 - INFO - 172.18.0.1 - - [16/Jun/2025 22:56:49] "[31m[1mPUT /professores/P003 HTTP/1.1[0m" 400 -
+2025-06-16 22:58:20,550 - INFO - 172.18.0.1 - - [16/Jun/2025 22:58:20] "[31m[1mPOST /professores HTTP/1.1[0m" 400 -
+2025-06-16 23:00:57,281 - INFO - 172.18.0.1 - - [16/Jun/2025 23:00:57] "[31m[1mPOST /professores HTTP/1.1[0m" 400 -
+2025-06-16 23:03:34,359 - INFO - 172.18.0.1 - - [16/Jun/2025 23:03:34] "[31m[1mPOST /professores HTTP/1.1[0m" 400 -
+2025-06-16 23:04:43,116 - INFO - Operação READ_ATIVIDADES_ALUNOS realizada com sucesso. Detalhes: {'total': 3}
+2025-06-16 23:04:43,122 - INFO - 172.18.0.1 - - [16/Jun/2025 23:04:43] "GET /atividades_alunos HTTP/1.1" 200 -
+2025-06-16 23:06:05,662 - INFO - Operação CREATE_ATIVIDADE_ALUNO realizada com sucesso. Detalhes: {'atividade_aluno_id': 4, 'atividade_id': 1, 'aluno_id': 'A001', 'status': 'Entregue', 'nota': 9.5}
+2025-06-16 23:06:05,664 - INFO - 172.18.0.1 - - [16/Jun/2025 23:06:05] "[35m[1mPOST /atividades_alunos HTTP/1.1[0m" 201 -
+2025-06-16 23:06:31,755 - INFO - Operação READ_ATIVIDADES_ALUNOS realizada com sucesso. Detalhes: {'total': 4}
+2025-06-16 23:06:31,759 - INFO - 172.18.0.1 - - [16/Jun/2025 23:06:31] "GET /atividades_alunos HTTP/1.1" 200 -
+2025-06-16 23:08:12,702 - ERROR - Erro na operação CREATE_ATIVIDADE_ALUNO. Detalhes: {'atividade_id': 1, 'aluno_id': 'A007', 'status': 'Entregue', 'nota': 9.5}. Erro: insert or update on table "atividades_alunos" violates foreign key constraint "atividades_alunos_aluno_id_fkey"
+DETAIL:  Key (aluno_id)=(A007) is not present in table "alunos".
+
+2025-06-16 23:08:12,704 - INFO - 172.18.0.1 - - [16/Jun/2025 23:08:12] "[35m[1mPOST /atividades_alunos HTTP/1.1[0m" 500 -
+2025-06-16 23:11:36,962 - INFO - Operação CREATE_ATIVIDADE_ALUNO realizada com sucesso. Detalhes: {'atividade_aluno_id': 6, 'atividade_id': 2, 'aluno_id': 'A004', 'status': 'Pendente', 'nota': None}
+2025-06-16 23:11:36,965 - INFO - 172.18.0.1 - - [16/Jun/2025 23:11:36] "[35m[1mPOST /atividades_alunos HTTP/1.1[0m" 201 -
+2025-06-16 23:13:30,340 - INFO - 172.18.0.1 - - [16/Jun/2025 23:13:30] "[31m[1mPOST /professores HTTP/1.1[0m" 400 -
+2025-06-16 23:14:11,585 - ERROR - Erro na operação CREATE. Detalhes: {'nome': 'Fernanda Lima', 'idade': 20, 'turma': 'Turma B'}. Erro: 42703 - ERROR:  column "idade" of relation "alunos" does not exist
+LINE 1: INSERT INTO alunos (nome, idade, turma) VALUES ('Fernanda Li...
+                                  ^
+
+2025-06-16 23:14:11,589 - INFO - 172.18.0.1 - - [16/Jun/2025 23:14:11] "[35m[1mPOST /alunos HTTP/1.1[0m" 500 -
+2025-06-16 23:15:59,774 - ERROR - Erro na operação CREATE. Detalhes: None. Erro: Dados de entrada inválidos. Campos obrigatórios: nome, idade, turma.
+2025-06-16 23:15:59,777 - INFO - 172.18.0.1 - - [16/Jun/2025 23:15:59] "[31m[1mPOST /alunos HTTP/1.1[0m" 400 -
+2025-06-16 23:28:16,939 - WARNING -  * Running on all addresses.
+   WARNING: This is a development server. Do not use it in a production deployment.
+2025-06-16 23:28:16,942 - INFO -  * Running on http://172.18.0.3:8000/ (Press CTRL+C to quit)
+2025-06-16 23:28:52,370 - INFO - Operação CREATE realizada com sucesso. Detalhes: {'aluno_id': 'A006', 'nome': 'Fernanda Lima', 'endereco': 'Rua das Palmeiras, 456', 'cidade': 'Salvador', 'estado': 'BA', 'cep': '67890-123', 'pais': 'Brasil', 'telefone': '71987654326'}
+2025-06-16 23:28:52,378 - INFO - 172.18.0.1 - - [16/Jun/2025 23:28:52] "[35m[1mPOST /alunos HTTP/1.1[0m" 201 -
+2025-06-16 23:30:18,803 - ERROR - Erro na operação READ. Detalhes: None. Erro: 42703 - ERROR:  column "id" does not exist
+LINE 1: SELECT id, nome, idade, turma FROM alunos
+               ^
+
+2025-06-16 23:30:18,808 - INFO - 172.18.0.1 - - [16/Jun/2025 23:30:18] "[35m[1mGET /alunos HTTP/1.1[0m" 500 -
+2025-06-16 23:33:16,637 - ERROR - Erro na operação READ. Detalhes: None. Erro: 42703 - ERROR:  column "id" does not exist
+LINE 1: SELECT id, nome, idade, turma FROM alunos
+               ^
+
+2025-06-16 23:33:16,639 - INFO - 172.18.0.1 - - [16/Jun/2025 23:33:16] "[35m[1mGET /alunos HTTP/1.1[0m" 500 -
+2025-06-16 23:35:50,902 - WARNING -  * Running on all addresses.
+   WARNING: This is a development server. Do not use it in a production deployment.
+2025-06-16 23:35:50,904 - INFO -  * Running on http://172.18.0.3:8000/ (Press CTRL+C to quit)
+2025-06-16 23:35:51,153 - INFO - Operação READ realizada com sucesso. Detalhes: {'total_alunos': 6}
+2025-06-16 23:35:51,158 - INFO - 172.18.0.1 - - [16/Jun/2025 23:35:51] "GET /alunos HTTP/1.1" 200 -
