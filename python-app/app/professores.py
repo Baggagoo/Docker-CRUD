@@ -4,6 +4,28 @@ from logger_config import log_operacao  # Importa a função centralizada de log
 
 professores_bp = Blueprint('professores', __name__)
 
+# Criar tabela professores
+def criar_tabela_professores():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS professores (
+              professor_id VARCHAR(4) PRIMARY KEY,
+              nome VARCHAR(100),
+              departamento VARCHAR(100),
+              email VARCHAR(100),
+              telefone VARCHAR(20)
+            );
+            '''
+        )
+        conn.commit()
+        cursor.close()
+        close_db_connection(conn)
+    except Exception as e:
+        print(f"Erro ao criar tabela professores: {e}")
+
 # Listar todos os professores
 @professores_bp.route('/professores', methods=['GET'])
 def get_professores():
@@ -60,37 +82,7 @@ def get_professores():
 # Cadastrar um novo professor
 @professores_bp.route('/professores', methods=['POST'])
 def create_professor():
-    """
-    Cadastrar um novo professor
-    ---
-    parameters:
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          properties:
-            professor_id:
-              type: string
-              description: ID do professor
-            nome:
-              type: string
-              description: Nome do professor
-            departamento:
-              type: string
-              description: Departamento do professor
-            email:
-              type: string
-              description: Email do professor
-            telefone:
-              type: string
-              description: Telefone do professor
-    responses:
-      201:
-        description: Professor cadastrado com sucesso
-    """
     data = request.get_json()
-    professor_id = data.get('professor_id')
     nome = data.get('nome')
     departamento = data.get('departamento')
     email = data.get('email')
@@ -99,6 +91,17 @@ def create_professor():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # Lógica para gerar o próximo professor_id
+        cursor.execute("SELECT professor_id FROM professores WHERE professor_id LIKE 'P%' ORDER BY professor_id DESC LIMIT 1")
+        last = cursor.fetchone()
+        if last:
+            last_num = int(last[0][1:])
+            new_num = last_num + 1
+        else:
+            new_num = 1
+        professor_id = f'P{new_num:03d}'
+
         cursor.execute(
             '''
             INSERT INTO professores (professor_id, nome, departamento, email, telefone)
@@ -120,8 +123,9 @@ def create_professor():
         log_operacao("CREATE_PROFESSOR", True, detalhes)
         return jsonify(detalhes), 201
     except Exception as e:
+        print("ERRO AO CADASTRAR PROFESSOR:", e)
         log_operacao("CREATE_PROFESSOR", False, detalhes=data, erro=str(e))
-        return jsonify({"error": "Erro ao cadastrar professor"}), 500
+        return jsonify({"error": f"Erro ao cadastrar professor: {e}"}), 500
 
 # Atualizar um professor existente
 @professores_bp.route('/professores/<string:professor_id>', methods=['PUT'])
@@ -220,3 +224,6 @@ def delete_professor(professor_id):
     except Exception as e:
         log_operacao("DELETE_PROFESSOR", False, detalhes={"professor_id": professor_id}, erro=str(e))
         return jsonify({"error": "Erro ao excluir professor"}), 500
+
+# Criar a tabela ao iniciar o módulo
+criar_tabela_professores()
