@@ -1,37 +1,16 @@
-from flask import Blueprint, jsonify, request
-from database import get_db_connection, close_db_connection
-from logger_config import log_operacao  # Importa a função centralizada de log
+from flask import Blueprint, request, jsonify
+from database import get_db_connection
+from logger_config import log_operacao
 
 professores_bp = Blueprint('professores', __name__)
 
-# Criar tabela professores
-def criar_tabela_professores():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS professores (
-              professor_id VARCHAR(4) PRIMARY KEY,
-              nome VARCHAR(100),
-              departamento VARCHAR(100),
-              email VARCHAR(100),
-              telefone VARCHAR(20)
-            );
-            '''
-        )
-        conn.commit()
-        cursor.close()
-        close_db_connection(conn)
-    except Exception as e:
-        print(f"Erro ao criar tabela professores: {e}")
-
-# Listar todos os professores
 @professores_bp.route('/professores', methods=['GET'])
-def get_professores():
+def listar_professores():
     """
-    Listar todos os professores
+    Lista todos os professores
     ---
+    tags:
+      - Professores
     responses:
       200:
         description: Lista de professores
@@ -42,188 +21,146 @@ def get_professores():
             properties:
               professor_id:
                 type: string
-                description: ID do professor
               nome:
                 type: string
-                description: Nome do professor
               departamento:
                 type: string
-                description: Departamento do professor
               email:
                 type: string
-                description: Email do professor
               telefone:
                 type: string
-                description: Telefone do professor
     """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT professor_id, nome, departamento, email, telefone FROM professores')
-        professores = cursor.fetchall()
-        cursor.close()
-        close_db_connection(conn)
-
-        log_operacao("READ_PROFESSORES", True, detalhes={"total": len(professores)})
-        return jsonify([
-            {
-                "professor_id": professor[0],
-                "nome": professor[1],
-                "departamento": professor[2],
-                "email": professor[3],
-                "telefone": professor[4]
-            }
-            for professor in professores
-        ])
-    except Exception as e:
-        log_operacao("READ_PROFESSORES", False, erro=str(e))
-        return jsonify({"error": "Erro ao listar professores"}), 500
-
-# Cadastrar um novo professor
-@professores_bp.route('/professores', methods=['POST'])
-def create_professor():
-    data = request.get_json()
-    nome = data.get('nome')
-    departamento = data.get('departamento')
-    email = data.get('email')
-    telefone = data.get('telefone')
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Lógica para gerar o próximo professor_id
-        cursor.execute("SELECT professor_id FROM professores WHERE professor_id LIKE 'P%' ORDER BY professor_id DESC LIMIT 1")
-        last = cursor.fetchone()
-        if last:
-            last_num = int(last[0][1:])
-            new_num = last_num + 1
-        else:
-            new_num = 1
-        professor_id = f'P{new_num:03d}'
-
-        cursor.execute(
-            '''
-            INSERT INTO professores (professor_id, nome, departamento, email, telefone)
-            VALUES (%s, %s, %s, %s, %s)
-            ''',
-            (professor_id, nome, departamento, email, telefone)
-        )
-        conn.commit()
-        cursor.close()
-        close_db_connection(conn)
-
-        detalhes = {
-            "professor_id": professor_id,
-            "nome": nome,
-            "departamento": departamento,
-            "email": email,
-            "telefone": telefone
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT professor_id, nome, departamento, email, telefone FROM professores")
+    professores = cur.fetchall()
+    cur.close()
+    conn.close()
+    log_operacao("listar_professores", "Listou todos os professores")
+    lista = [
+        {
+            "professor_id": p[0],
+            "nome": p[1],
+            "departamento": p[2],
+            "email": p[3],
+            "telefone": p[4]
         }
-        log_operacao("CREATE_PROFESSOR", True, detalhes)
-        return jsonify(detalhes), 201
-    except Exception as e:
-        print("ERRO AO CADASTRAR PROFESSOR:", e)
-        log_operacao("CREATE_PROFESSOR", False, detalhes=data, erro=str(e))
-        return jsonify({"error": f"Erro ao cadastrar professor: {e}"}), 500
+        for p in professores
+    ]
+    return jsonify(lista), 200
 
-# Atualizar um professor existente
-@professores_bp.route('/professores/<string:professor_id>', methods=['PUT'])
-def update_professor(professor_id):
+@professores_bp.route('/professores/<professor_id>', methods=['GET'])
+def obter_professor(professor_id):
     """
-    Atualizar um professor existente
+    Busca um professor pelo ID
     ---
+    tags:
+      - Professores
     parameters:
-      - in: path
-        name: professor_id
-        required: true
+      - name: professor_id
+        in: path
         type: string
-        description: ID do professor
+        required: true
+        description: ID do professor (ex: P001)
+    responses:
+      200:
+        description: Professor encontrado
+        schema:
+          type: object
+          properties:
+            professor_id:
+              type: string
+            nome:
+              type: string
+            departamento:
+              type: string
+            email:
+              type: string
+            telefone:
+              type: string
+      404:
+        description: Professor não encontrado
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT professor_id, nome, departamento, email, telefone FROM professores WHERE professor_id = %s", (professor_id,))
+    p = cur.fetchone()
+    cur.close()
+    conn.close()
+    if p:
+        log_operacao("obter_professor", f"Consultou professor {professor_id}")
+        return jsonify({
+            "professor_id": p[0],
+            "nome": p[1],
+            "departamento": p[2],
+            "email": p[3],
+            "telefone": p[4]
+        }), 200
+    else:
+        log_operacao("obter_professor", f"Tentou consultar professor inexistente {professor_id}")
+        return jsonify({"error": "Professor não encontrado"}), 404
+
+@professores_bp.route('/professores', methods=['POST'])
+def criar_professor():
+    """
+    Cadastra um novo professor
+    ---
+    tags:
+      - Professores
+    parameters:
       - in: body
         name: body
         required: true
         schema:
           type: object
+          required:
+            - professor_id
+            - nome
+            - departamento
+            - email
+            - telefone
           properties:
+            professor_id:
+              type: string
+              example: P004
             nome:
               type: string
-              description: Nome do professor
+              example: Marina Lima
             departamento:
               type: string
-              description: Departamento do professor
+              example: Química
             email:
               type: string
-              description: Email do professor
+              example: marina.lima@escola.com
             telefone:
               type: string
-              description: Telefone do professor
+              example: "41987654324"
     responses:
-      200:
-        description: Professor atualizado com sucesso
+      201:
+        description: Professor cadastrado com sucesso
+      400:
+        description: Erro de validação ou de banco de dados
     """
     data = request.get_json()
-    nome = data.get('nome')
-    departamento = data.get('departamento')
-    email = data.get('email')
-    telefone = data.get('telefone')
+    required = ['professor_id', 'nome', 'departamento', 'email', 'telefone']
+    if not data or not all(field in data for field in required):
+        log_operacao("criar_professor", "Tentativa de cadastro com campos faltando")
+        return jsonify({"error": "Campos obrigatórios: professor_id, nome, departamento, email, telefone"}), 400
 
+    conn = get_db_connection()
+    cur = conn.cursor()
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            UPDATE professores
-            SET nome = %s, departamento = %s, email = %s, telefone = %s
-            WHERE professor_id = %s
-            ''',
-            (nome, departamento, email, telefone, professor_id)
+        cur.execute(
+            "INSERT INTO professores (professor_id, nome, departamento, email, telefone) VALUES (%s, %s, %s, %s, %s)",
+            (data['professor_id'], data['nome'], data['departamento'], data['email'], data['telefone'])
         )
         conn.commit()
-        cursor.close()
-        close_db_connection(conn)
-
-        detalhes = {
-            "professor_id": professor_id,
-            "nome": nome,
-            "departamento": departamento,
-            "email": email,
-            "telefone": telefone
-        }
-        log_operacao("UPDATE_PROFESSOR", True, detalhes)
-        return jsonify(detalhes)
+        log_operacao("criar_professor", f"Professor {data['professor_id']} cadastrado")
+        return jsonify({"message": "Professor cadastrado com sucesso"}), 201
     except Exception as e:
-        log_operacao("UPDATE_PROFESSOR", False, detalhes={"professor_id": professor_id}, erro=str(e))
-        return jsonify({"error": "Erro ao atualizar professor"}), 500
-
-# Excluir um professor
-@professores_bp.route('/professores/<string:professor_id>', methods=['DELETE'])
-def delete_professor(professor_id):
-    """
-    Excluir um professor
-    ---
-    parameters:
-      - in: path
-        name: professor_id
-        required: true
-        type: string
-        description: ID do professor
-    responses:
-      200:
-        description: Professor excluído com sucesso
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM professores WHERE professor_id = %s', (professor_id,))
-        conn.commit()
-        cursor.close()
-        close_db_connection(conn)
-
-        log_operacao("DELETE_PROFESSOR", True, detalhes={"professor_id": professor_id})
-        return jsonify({"message": f"Professor com id {professor_id} foi excluído com sucesso"})
-    except Exception as e:
-        log_operacao("DELETE_PROFESSOR", False, detalhes={"professor_id": professor_id}, erro=str(e))
-        return jsonify({"error": "Erro ao excluir professor"}), 500
-
-# Criar a tabela ao iniciar o módulo
-criar_tabela_professores()
+        conn.rollback()
+        log_operacao("criar_professor", f"Erro ao cadastrar professor: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+    finally:
+        cur.close()
+        conn.close()
